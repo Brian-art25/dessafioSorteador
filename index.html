@@ -1,54 +1,215 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <title>Sorteador de números</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chá de Casa Nova</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-500 text-white min-h-screen font-sans">
 
-<body>
-    <div class="container">
-        <div class="container__conteudo">
-            <div class="container__informacoes">
-                <div class="container__texto">
-                    <h1>Sorteador<span class="container__texto-azul"> de números</span></h1>
+  <!-- Topo -->
+  <header class="text-center py-12 px-4">
+    <img id="couplePhoto" src="Gay.jpg" alt="Casal" class="rounded-full mx-auto shadow-2xl border-4 border-white w-36 h-36 object-cover">
+    <h1 class="text-5xl font-extrabold mt-5 tracking-tight">Chá de Casa Nova</h1>
+    <p class="mt-2 text-lg">Bem-vindos, amigos e familiares! 💖</p>
+    <p class="mt-4 text-xl font-semibold">05/10 às 13:00</p>
+    <p id="countdown" class="mt-2 text-md"></p>
+  </header>
 
-                    <div class="container__campo">
-                        <label class="texto__paragrafo">Quantidade de números</label>
-                        <input class="container__input" id="quantidade" type="number" min="1">
-                    </div>
-                    
-                    <div class="container__campo">
-                        <label class="texto__paragrafo">Do número</label>
-                        <input class="container__input" id="de" type="number" min="1">
-                    </div>
-                    
-                    <div class="container__campo">
-                        <label class="texto__paragrafo">Até o número</label>
-                        <input class="container__input" id="ate" type="number" min="1">
-                    </div>
-                </div>
-                
-                <div class="chute container__botoes">
-                    <button onclick="sortear()" id="btn-sortear" class="container__botao">Sortear</button>
-                    <button onclick="reiniciar()" id="btn-reiniciar" class="container__botao-desabilitado" >Reiniciar</button>
-                </div>
+  <main class="mx-4 md:mx-auto md:w-3/4 lg:w-2/3">
+    <!-- Lista -->
+    <section class="bg-white/90 text-gray-900 rounded-3xl shadow-lg p-6 mb-8">
+      <h2 class="text-3xl font-bold text-center text-pink-600 mb-4">Lista de Presentes 2.0 🎁</h2>
+      <div id="giftList" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+      <p class="mt-6 text-center text-pink-500 font-medium">(Aceitamos também decorações que te lembrem a gente ❣)</p>
+    </section>
 
-                <div class="container__texto" id="resultado">
-                    <label class="texto__paragrafo">Números sorteados:  nenhum até agora</label>
-                </div>
-            </div>
+    <!-- Endereço -->
+    <section class="text-gray-100 bg-rose-600/90 rounded-2xl p-6 mb-8 shadow-lg">
+      <h3 class="text-2xl font-bold mb-2">Endereço</h3>
+      <p>Rua Irene Rocha, 17 - Residencial Flamboyant</p>
+      <iframe src="https://www.google.com/maps?q=Rua+Irene+Rocha,+17,+Residencial+Flamboyant&output=embed" 
+        width="100%" height="300" style="border:0; border-radius:1rem;" allowfullscreen loading="lazy">
+      </iframe>
+    </section>
 
-            <img src="./img/ia.png" alt="Uma pessoa com capacete de astronauta" class="container__imagem-pessoa" />
-        </div>
+    <!-- Agradecimento -->
+    <section class="text-center bg-indigo-700/90 rounded-2xl p-6 shadow-lg mb-12">
+      <p class="text-lg">Somos muito gratos por vocês estarem nas nossas vidas e pelo carinho aos escolher os presentes! Estamos ansiosos por essa nova fase! 💕</p>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div id="modal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl p-6 w-11/12 max-w-md text-gray-900 shadow-2xl">
+      <h4 id="modalTitle" class="text-xl font-bold mb-3">Confirmar ação</h4>
+      <p id="modalGift" class="mb-3 font-medium"></p>
+      <input id="guestName" type="text" placeholder="Seu nome" class="w-full p-2 border rounded mb-3" />
+      <div class="flex justify-end gap-3">
+        <button id="cancelBtn" class="px-4 py-2 rounded bg-gray-200">Cancelar</button>
+        <button id="confirmBtn" class="px-4 py-2 rounded bg-pink-500 text-white">Confirmar</button>
+      </div>
     </div>
+  </div>
 
-    <script src="app.js" defer></script>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+    import { 
+      getFirestore, collection, doc, getDocs, writeBatch, 
+      onSnapshot, runTransaction, serverTimestamp 
+    } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCRk3NAJhGPrWp3umMwUVjHYAZYQgd2JPY",
+      authDomain: "chacasanova-nicolas.firebaseapp.com",
+      projectId: "chacasanova-nicolas",
+      storageBucket: "chacasanova-nicolas.firebasestorage.app",
+      messagingSenderId: "759490548146",
+      appId: "1:759490548146:web:6c752a6b7253c4ca9654ab"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const gifts = [
+      'Jogo de talher','Jogo de panela','Conchas, colheres, espátulas etc','Colheres de pau','Ralador','Jogo de facas',
+      'Descascador','Jarra de suco','Jogo de pratos','Jogo de copos','Panos de prato','Xícaras (sem ser jogo de chá)',
+      'Tábua de carne','Mangueira de quintal','Torneira com filtro (que sai da parede)','Jogo de tapetes de cozinha',
+      'Jogo de tapetes de banheiro','Roupa de cama (casal)','Roupa de cama (casal)','Jogo de toalha','Jogo de toalha',
+      'Jogo de bowl','Potes','Potes','Potes','Garrafa térmica de café','Porta temperos','Formas (bolo etc)',
+      'Lixinhos de banheiro (2)','Cestos de lixo grande (2)','Manta de sofá'
+    ];
+
+    const giftsCol = collection(db, 'gifts');
+
+    function getMaxChoices(title) { return title.includes('(2)') ? 2 : 1; }
+
+    // 🚨 Correção: não sobrescreve a lista
+    async function ensureInitialized() {
+      const snapshot = await getDocs(giftsCol);
+      if (!snapshot.empty) return;
+      const batch = writeBatch(db);
+      gifts.forEach((title, idx) => {
+        const d = doc(db, 'gifts', String(idx));
+        batch.set(d, { title, chosenBy: [], chosenByCount: 0, updatedAt: serverTimestamp() });
+      });
+      await batch.commit();
+    }
+
+    const giftListEl = document.getElementById('giftList');
+    let currentIdx = null;
+    let isCancelAction = false;
+
+    function renderList(docs) {
+      giftListEl.innerHTML = '';
+      docs.forEach(docSnap => {
+        const data = docSnap.data();
+        const idx = docSnap.id;
+
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl p-4 shadow flex flex-col gap-2 text-gray-900';
+
+        const titleRow = document.createElement('div');
+        titleRow.className = 'flex items-center justify-between gap-3';
+
+        const title = document.createElement('div');
+        title.innerHTML = `<span class='font-semibold'>${data.title}</span>`;
+
+        const right = document.createElement('div');
+        if (data.chosenByCount >= getMaxChoices(data.title)) {
+          const chosenLabel = document.createElement('span');
+          chosenLabel.className = 'text-sm font-medium text-green-700';
+          chosenLabel.textContent = `Já escolhido por: ${data.chosenBy.join(', ')}`;
+          right.appendChild(chosenLabel);
+
+          const cancelBtnLocal = document.createElement('button');
+          cancelBtnLocal.className = 'ml-2 text-sm text-red-600 underline';
+          cancelBtnLocal.textContent = 'Cancelar escolha';
+          cancelBtnLocal.addEventListener('click', () => openModal(idx, data.title, true));
+          right.appendChild(cancelBtnLocal);
+        } else {
+          const btn = document.createElement('button');
+          btn.className = 'px-3 py-1 rounded-full bg-pink-500 text-white hover:bg-pink-600';
+          btn.textContent = 'Eu quero dar este!';
+          btn.addEventListener('click', () => openModal(idx, data.title, false));
+          right.appendChild(btn);
+        }
+
+        titleRow.appendChild(title);
+        titleRow.appendChild(right);
+        card.appendChild(titleRow);
+        giftListEl.appendChild(card);
+      });
+    }
+
+    const modal = document.getElementById('modal');
+    const modalGift = document.getElementById('modalGift');
+    const guestName = document.getElementById('guestName');
+    const modalTitle = document.getElementById('modalTitle');
+    const cancelBtnModal = document.getElementById('cancelBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    function openModal(idx, title, cancel = false) {
+      currentIdx = idx;
+      isCancelAction = cancel;
+      modalGift.textContent = title;
+      guestName.value = '';
+      modalTitle.textContent = cancel ? 'Cancelar escolha' : 'Confirmar presente';
+      guestName.placeholder = cancel ? 'Seu nome (opcional)' : 'Seu nome';
+      modal.classList.remove('hidden');
+      guestName.focus();
+    }
+
+    cancelBtnModal.addEventListener('click', () => { modal.classList.add('hidden'); currentIdx = null; });
+
+    confirmBtn.addEventListener('click', async () => {
+      const name = guestName.value.trim() || "Convidado";
+      const docRef = doc(db, 'gifts', String(currentIdx));
+      try {
+        await runTransaction(db, async (tx) => {
+          const snap = await tx.get(docRef);
+          const d = snap.data();
+          if (isCancelAction) {
+            d.chosenBy = [];
+            d.chosenByCount = 0;
+            tx.update(docRef, { chosenBy: d.chosenBy, chosenByCount: d.chosenByCount, updatedAt: serverTimestamp() });
+          } else {
+            if (d.chosenByCount >= getMaxChoices(d.title)) throw 'Este item já foi escolhido';
+            d.chosenBy.push(name);
+            d.chosenByCount += 1;
+            tx.update(docRef, { chosenBy: d.chosenBy, chosenByCount: d.chosenByCount, updatedAt: serverTimestamp() });
+          }
+        });
+        modal.classList.add('hidden');
+        currentIdx = null;
+      } catch (err) {
+        alert('Erro: ' + err);
+      }
+    });
+
+    // Contagem regressiva
+    const eventDate = new Date('2025-10-05T13:00:00-03:00').getTime();
+    const countdownEl = document.getElementById('countdown');
+    function updateCountdown() {
+      const now = Date.now();
+      const diff = eventDate - now;
+      if (diff <= 0) { countdownEl.textContent = 'O grande dia chegou! 🎉'; return; }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      countdownEl.textContent = `${days} dias • ${hours}h ${minutes}min`;
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+
+    (async () => {
+      await ensureInitialized();
+      onSnapshot(giftsCol, (snapshot) => { renderList(snapshot.docs.sort((a, b) => Number(a.id) - Number(b.id))); });
+    })();
+
+  </script>
+
 </body>
-
 </html>
